@@ -1,4 +1,3 @@
-
 # STSAFE-A Secure data storage
 This project illustrates how to use the STSAFE-A Secure Element and STMicroelectronics Secure Element Library to perform data storage through STSAFE-A Secure Element.
 When loaded on the target MCU platform , the project performes the storage of 100 bytes through STSAFE-A User-NVM Zone 5. This storage scheme is typically used to store data securely.
@@ -18,35 +17,36 @@ sequenceDiagram
     STSE -->>- HOST : Data partition records
     note over HOST : Print data partition records table
 
-    HOST ->>+ STSE : Read User-NVM Zone 1 <br> (100 bytes at offset 0x0000)
-    STSE -->>- HOST : 100 bytes from User-NVM Zone 1
-    note over HOST : Print 100 bytes read from User-NVM Zone 1
+    HOST ->>+ STSE : Read User-NVM Zone 5 <br> with associated counter <br> (64 bytes at offset 0x0000)
+    STSE -->>- HOST : 64 bytes from User-NVM Zone 5
+    note over HOST : Print 64 bytes read from User-NVM Zone 5 <br> & counter value
 
-    HOST ->>+ STSE : Generate 100 bytes random number <br> (stsafea_generate_random)
-    STSE -->>- HOST : 100 bytes random number
-    HOST ->>+ STSE : Update User-NVM Zone 1 with generated random number <br> (stse_data_storage_update_data_zone) <br> (100 new bytes at offset 0x0000)
-    note over HOST : Print random number (100 bytes)
-    HOST ->>+ STSE : Read User-NVM Zone 1 <br> (100 bytes at offset 0x0000)
-    STSE -->>- HOST : 100 bytes from User-NVM Zone 1
-    note over HOST : Print 100 bytes read from User-NVM Zone 1 <br> These 100 bytes shall be identical <br> to generated 100 bytes random number <br> and different than 100 bytes firstly read
+    HOST ->>+ STSE : Generate 64 bytes random number <br> (using STSAFE-A120)
+    STSE -->>- HOST : 64 bytes random number
+    HOST ->>+ STSE : Decrement Zone 5 counter & <br> Update User-NVM Zone 5 with generated random number <br> (64 new bytes at offset 0x0000)
+    note over HOST : Print data stored by API <br> (64 new bytes random number) <br> & new counter value
+    HOST ->>+ STSE : Read User-NVM Zone 5 <br> (64 bytes at offset 0x0000)
+    STSE -->>- HOST : 64 bytes from User-NVM Zone 5
+    note over HOST : Print 64 bytes read from User-NVM Zone 5 <br> These 64 bytes shall be identical <br> to generated 64 bytes random number <br> and different than 64 bytes firstly read <br> The counter value shall be decremented of one unit
 ```
 
 The example applicative flowchart is illustrated below :
 
 ```mermaid
 flowchart TD
-    A["MAIN"] --> B["Initialize Apps terminal (baudrate = 115200)"]
+    A["MAIN"] --> B["Initialize Apps terminal <br> (baudrate = 115200)"]
     B --> C["Print example title and instructions"]
     C --> D["Initialize STSE Handler"]
     D --> E["Print data partition records table"]
     E --> F["Print 64 bytes read from User-NVM Zone 5 and associated counter value"]
     F --> G["Generate Random Number (64 bytes)"]
     G --> H["Print Random Number"]
-    H --> I["Store Random Number through User-NVM Zone 5"]
-    I --> J["Print 64 bytes read from User-NVM Zone 5 and associated counter value"]
+    H --> I["Store Random Number through User-NVM Zone 5 & decrement counter"]
+    I --> J["Print new 64 bytes stored through User-NVM Zone 5 and new associated counter value returned by decrement counter zone command"]
+    J --> K["Print 64 bytes read from User-NVM Zone 5 and associated counter value returned by read counter zone command"]
 ```
 
-STSELib API & Services used in the example are the following :
+STSELib API used in the example are the following :
 
 - stse_set_default_handler_value
 - stse_init
@@ -78,7 +78,7 @@ STSELib API & Services used in the example are the following :
 
 - Connect the board to the development computer and Open and configure a terminal software as follow (i.e. Teraterm).
 
-![](./Pictures//teraterm_config.png)
+![](./Pictures/teraterm_config.png)
 
 - Open the STM32CubeIDE projects located in Application/STM32CubeIDE
 
@@ -98,7 +98,7 @@ As example below.
 
 <pre>
 ----------------------------------------------------------------------------------------------------------------
--                            STSAFE-A120 secure data storage zone access example                               -
+-                            STSAFE-A120 secure data storage counter zone access example                               -
 ----------------------------------------------------------------------------------------------------------------
 -                                                                                                              -
 - description :                                                                                                -
@@ -150,11 +150,11 @@ As example below.
   0x00 0xA5 0xB8 0xC1 0x48 0x19 0xC6 0x2D 0xA1 0xE2 0x75 0x3A 0x7D 0x3B 0x5B 0x16
   0x54 0x97 0x76 0x90 0x42 0x71 0xFE 0x9B 0x91 0x2D 0xFF 0x1F 0x98 0x19 0xE6 0x3B
 
- - stse_data_storage_read_data_zone (zone : 05 - length : 64 - New counter : 4294967279)
+ <span style="color:green"> - stse_data_storage_read_data_zone (zone : 05 - length : 64 - counter : 4294967279)
   0xCD 0x13 0xFA 0x13 0x05 0x5F 0x3E 0x1E 0x54 0x0C 0xB0 0x12 0xEA 0x69 0x0F 0xED
   0x6F 0x46 0x55 0x0C 0x6B 0x5E 0x80 0xC8 0x41 0xCF 0x74 0x65 0xDC 0x08 0x7C 0xFF
   0x00 0xA5 0xB8 0xC1 0x48 0x19 0xC6 0x2D 0xA1 0xE2 0x75 0x3A 0x7D 0x3B 0x5B 0x16
-  0x54 0x97 0x76 0x90 0x42 0x71 0xFE 0x9B 0x91 0x2D 0xFF 0x1F 0x98 0x19 0xE6 0x3B
+  0x54 0x97 0x76 0x90 0x42 0x71 0xFE 0x9B 0x91 0x2D 0xFF 0x1F 0x98 0x19 0xE6 0x3B</span>
 </pre>
 
  ## How to adapt the exemple

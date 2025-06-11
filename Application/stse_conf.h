@@ -100,7 +100,7 @@ extern "C" {
  *********************************************************/
 
 #define STSE_USE_RSP_POLLING
-#define STSE_MAX_POLLING_RETRY 100
+#define STSE_MAX_POLLING_RETRY 10
 #define STSE_FIRST_POLLING_INTERVAL 10
 #define STSE_POLLING_RETRY_INTERVAL 10
 //#define STSE_FRAME_DEBUG_LOG

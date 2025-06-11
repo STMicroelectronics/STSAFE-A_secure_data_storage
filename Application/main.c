@@ -22,8 +22,11 @@
 /* Defines -------------------------------------------------------------------*/
 #define PRINT_RESET "\x1B[0m"
 #define PRINT_CLEAR_SCREEN "\x1B[1;1H\x1B[2J"
+#define PRINT_RED "\x1B[31m"   /* Red */
+#define PRINT_GREEN "\x1B[32m" /* Green */
+
 #define READ_BUFFER_SIZE 64
-#define RANDOM_SIZE 64
+#define RANDOM_SIZE READ_BUFFER_SIZE
 
 /* STDIO redirect */
 #if defined(__GNUC__) && !defined(__ARMCC_VERSION)
@@ -39,6 +42,16 @@ PUTCHAR_PROTOTYPE {
 }
 GETCHAR_PROTOTYPE {
     return uart_getc();
+}
+
+void apps_terminal_init(uint32_t baudrate) {
+    (void)baudrate;
+    /* - Initialize UART for example output log (baud 115200)  */
+    uart_init(115200);
+    /* Disable I/O buffering for STDOUT stream*/
+    setvbuf(stdout, NULL, _IONBF, 0);
+    /* - Clear terminal */
+    printf(PRINT_RESET PRINT_CLEAR_SCREEN);
 }
 
 void apps_print_data_partition_record_table(stse_Handler_t *pSTSE) {
@@ -144,16 +157,6 @@ void apps_print_hex_buffer(uint8_t *buffer, uint16_t buffer_size) {
     }
 }
 
-void apps_terminal_init(uint32_t baudrate) {
-    (void)baudrate;
-    /* - Initialize UART for example output log (baud 115200)  */
-    uart_init(115200);
-    /* Disable I/O buffering for STDOUT stream*/
-    setvbuf(stdout, NULL, _IONBF, 0);
-    /* - Clear terminal */
-    printf(PRINT_RESET PRINT_CLEAR_SCREEN);
-}
-
 int main(void) {
     stse_ReturnCode_t stse_ret = STSE_API_INVALID_PARAMETER;
     stse_Handler_t stse_handler;
@@ -165,8 +168,9 @@ int main(void) {
     apps_terminal_init(115200);
 
     /* - Print Example instruction on terminal */
+    printf(PRINT_CLEAR_SCREEN);
     printf("----------------------------------------------------------------------------------------------------------------");
-    printf("\n\r-                            STSAFE-A120 secure data storage zone access example                               -");
+    printf("\n\r-                            STSAFE-A120 secure data storage counter zone access example                               -");
     printf("\n\r----------------------------------------------------------------------------------------------------------------");
     printf("\n\r-                                                                                                              -");
     printf("\n\r- description :                                                                                                -");
@@ -183,12 +187,12 @@ int main(void) {
     printf("\n\r-                                                                                                              -");
     printf("\n\r----------------------------------------------------------------------------------------------------------------");
 
-    /* ## Initialize STSAFE-A1xx device handler */
+    /* ## Initialize STSAFE-A120 device handler */
     stse_ret = stse_set_default_handler_value(&stse_handler);
     if (stse_ret != STSE_OK) {
-        printf("\n\r ## stse_set_default_handler_value ERROR : 0x%04X\n\r", stse_ret);
+        printf(PRINT_RED "\n\r ## stse_set_default_handler_value ERROR : 0x%04X\n\r", stse_ret);
         while (1)
-            ;
+            ; // infinite loop
     }
 
     stse_handler.device_type = STSAFE_A120;
@@ -197,9 +201,9 @@ int main(void) {
     printf("\n\r - Initialize target STSAFE-A120");
     stse_ret = stse_init(&stse_handler);
     if (stse_ret != STSE_OK) {
-        printf("\n\r ## stse_init ERROR : 0x%04X\n\r", stse_ret);
+        printf(PRINT_RED "\n\r ## stse_init ERROR : 0x%04X\n\r", stse_ret);
         while (1)
-            ;
+            ; // infinite loop
     }
 
     /* ## Print User NVM data partitioning information */
@@ -216,9 +220,9 @@ int main(void) {
         &counter_value,     /* Counter Value	*/
         STSE_NO_PROT);
     if (stse_ret != STSE_OK) {
-        printf("\n\n\r ### stse_data_storage_read_data_zone : ERROR 0x%04X", stse_ret);
+        printf(PRINT_RED "\n\n\r ### stse_data_storage_read_data_zone : ERROR 0x%04X", stse_ret);
         while (1)
-            ;
+            ; // infinite loop
     } else {
         printf("\n\n\r - stse_data_storage_read_data_zone (zone : 05 - length : %d - counter : %lu)", sizeof(readBuffer) / sizeof(readBuffer[0]), counter_value);
         apps_print_hex_buffer(readBuffer, sizeof(readBuffer));
@@ -227,15 +231,15 @@ int main(void) {
     /*## Generate random number */
     stse_ret = stse_generate_random(&stse_handler, random, READ_BUFFER_SIZE);
     if (stse_ret != STSE_OK) {
-        printf("\n\n\r ### STSAFE-A generate random : ERROR 0x%04X", stse_ret);
+        printf(PRINT_RED "\n\n\r ### STSAFE-A generate random : ERROR 0x%04X", stse_ret);
         while (1)
-            ;
+            ; // infinite loop
     } else {
         printf("\n\n\r - stse_generate_random (length : %d)", sizeof(random));
         apps_print_hex_buffer(random, sizeof(random));
     }
 
-    /*## Update Zone 5 with Random (Random Number storage)*/
+    /* ## Decrement zone 5 counter and store Randomized Associated data */
     stse_ret = stse_data_storage_decrement_counter_zone(
         &stse_handler,  /* SE handler 			*/
         5,              /* Zone index 			*/
@@ -246,15 +250,15 @@ int main(void) {
         &counter_value, /* Counter value		*/
         STSE_NO_PROT);
     if (stse_ret != STSE_OK) {
-        printf("\n\n\r ### stse_data_storage_update_data_zone : ERROR 0x%04X", stse_ret);
+        printf(PRINT_RED "\n\n\r ### stse_data_storage_decrement_counter_zone : ERROR 0x%04X", stse_ret);
         while (1)
-            ;
+            ; // infinite loop
     } else {
         printf("\n\n\r - stse_data_storage_decrement_counter_zone (zone = 05 - length = %d - New counter : %lu)", sizeof(random) / sizeof(random[0]), counter_value);
         apps_print_hex_buffer(random, sizeof(random));
     }
 
-    /* ## Read Zone 5 */
+    /* ## Read Zone 5 (counter zone) */
     stse_ret = stse_data_storage_read_counter_zone(
         &stse_handler,      /* SE handler		*/
         5,                  /* Zone index		*/
@@ -265,14 +269,16 @@ int main(void) {
         &counter_value,     /* Counter Value	*/
         STSE_NO_PROT);
     if (stse_ret != STSE_OK) {
-        printf("\n\n\r ### stse_data_storage_read_data_zone : ERROR 0x%04X", stse_ret);
+        printf(PRINT_RED "\n\n\r ### stse_data_storage_read_data_zone : ERROR 0x%04X", stse_ret);
         while (1)
-            ;
+            ; // infinite loop
     } else {
-        printf("\n\n\r - stse_data_storage_read_data_zone (zone : 05 - length : %d - New counter : %lu)", sizeof(readBuffer) / sizeof(readBuffer[0]), counter_value);
+        printf(PRINT_GREEN "\n\n\r - stse_data_storage_read_data_zone (zone : 05 - length : %d - counter : %lu)", sizeof(readBuffer) / sizeof(readBuffer[0]), counter_value);
         apps_print_hex_buffer(readBuffer, sizeof(readBuffer));
     }
 
     while (1)
-        ;
+        ; // infinite loop
+
+    return 0;
 }
