@@ -1,6 +1,7 @@
 # STSAFE-A Secure data storage
-This project illustrates how to use the STSAFE-A Secure Element and STMicroelectronics Secure Element Library to perform data storage through STSAFE-A Secure Element.
-When loaded on the target MCU platform , the project performes the storage of 100 bytes through STSAFE-A User-NVM Zone 5. This storage scheme is typically used to store data securely.
+This project illustrates how to use the STSAFE-A Secure Element and STMicroelectronics Secure Element Library to perform data storage through STSAFE-A Secure Element.<br>
+When loaded on the target MCU platform , the project performes the storage of 100 bytes through STSAFE-A User-NVM Zone 5.<br>
+This storage scheme is typically used to store data securely.
 
 ```mermaid
 sequenceDiagram
